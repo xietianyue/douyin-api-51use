@@ -36,7 +36,6 @@ import re
 import httpx
 
 from crawlers.douyin.web.web_crawler import DouyinWebCrawler  # 导入抖音Web爬虫
-from crawlers.tiktok.web.web_crawler import TikTokWebCrawler  # 导入TikTok Web爬虫
 from crawlers.tiktok.app.app_crawler import TikTokAPPCrawler  # 导入TikTok App爬虫
 from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibili Web爬虫
 
@@ -44,7 +43,6 @@ from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibi
 class HybridCrawler:
     def __init__(self):
         self.DouyinWebCrawler = DouyinWebCrawler()
-        self.TikTokWebCrawler = TikTokWebCrawler()
         self.TikTokAPPCrawler = TikTokAPPCrawler()
         self.BilibiliWebCrawler = BilibiliWebCrawler()
 
