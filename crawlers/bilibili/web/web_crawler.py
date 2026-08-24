@@ -58,13 +58,14 @@ class BilibiliWebCrawler:
     # 从配置文件读取哔哩哔哩请求头
     async def get_bilibili_headers(self):
         bili_config = config['TokenManager']['bilibili']
+        cookie = os.environ.get("BILIBILI_COOKIE", bili_config["headers"].get("cookie", ""))
         kwargs = {
             "headers": {
                 "accept-language": bili_config["headers"]["accept-language"],
                 "origin": bili_config["headers"]["origin"],
                 "referer": bili_config["headers"]["referer"],
                 "user-agent": bili_config["headers"]["user-agent"],
-                "cookie": bili_config["headers"]["cookie"],
+                "cookie": cookie,
             },
             "proxies": {"http://": bili_config["proxies"]["http"], "https://": bili_config["proxies"]["https"]},
         }

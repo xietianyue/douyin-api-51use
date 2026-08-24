@@ -67,11 +67,12 @@ class TikTokAPPCrawler:
     # 从配置文件中获取TikTok的请求头
     async def get_tiktok_headers(self):
         tiktok_config = config["TokenManager"]["tiktok"]
+        cookie = os.environ.get("TIKTOK_COOKIE", tiktok_config["headers"].get("Cookie", ""))
         kwargs = {
             "headers": {
                 "User-Agent": tiktok_config["headers"]["User-Agent"],
                 "Referer": tiktok_config["headers"]["Referer"],
-                "Cookie": tiktok_config["headers"]["Cookie"],
+                "Cookie": cookie,
                 "x-ladon": "Hello From Evil0ctal!",
             },
             "proxies": {"http://": tiktok_config["proxies"]["http"],
