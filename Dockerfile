@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Use a Docker Hub proxy so Chinese mainland servers do not need a direct Hub connection.
+FROM docker.m.daocloud.io/library/python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
