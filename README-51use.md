@@ -23,7 +23,7 @@
 ## 服务器部署（稍后执行）
 
 1. 将本目录上传到服务器，例如 `/opt/douyin-api`。
-2. 仅在服务器上将 `.env.example` 复制为 `.env`，填入 `INTERNAL_API_TOKEN`；三个 Cookie 按需要填写。
+2. 仅在服务器上将 `.env.example` 复制为 `.env`，填入 `INTERNAL_API_TOKEN`；各平台 Cookie 按需要填写。TikTok Cookie 应编码为 UTF-8 Base64 后写入 `TIKTOK_COOKIE_B64`，避免原始 Cookie 中的引号、空格或 $ 被 Docker env-file 语法解释。
 3. 执行：`docker compose -f docker-compose.production.yml up -d --build`
 4. 验证：`curl http://127.0.0.1:9010/healthz`
 

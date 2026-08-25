@@ -86,6 +86,15 @@ class BilibiliWebCrawler:
             response = await crawler.fetch_get_json(endpoint)
         return response
 
+    # 通过番剧 ep_id 获取季度及分集信息
+    async def fetch_bangumi_season(self, ep_id: str) -> dict:
+        kwargs = await self.get_bilibili_headers()
+        base_crawler = BaseCrawler(proxies=kwargs["proxies"], crawler_headers=kwargs["headers"])
+        async with base_crawler as crawler:
+            endpoint = f"{BilibiliAPIEndpoints.BANGUMI_SEASON}?ep_id={ep_id}"
+            response = await crawler.fetch_get_json(endpoint)
+        return response
+
     # 获取视频流地址
     async def fetch_video_playurl(self, bv_id: str, cid: str, qn: str = "64") -> dict:
         # 获取请求头信息

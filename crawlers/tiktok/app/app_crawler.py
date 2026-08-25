@@ -41,6 +41,7 @@ import os  # 系统操作
 # 基础爬虫客户端和TikTokAPI端点
 from crawlers.base_crawler import BaseCrawler
 from crawlers.tiktok.app.endpoints import TikTokAPIEndpoints
+from crawlers.tiktok.cookie import get_tiktok_cookie
 from crawlers.utils.utils import model_to_query_string
 
 # 重试机制
@@ -67,7 +68,7 @@ class TikTokAPPCrawler:
     # 从配置文件中获取TikTok的请求头
     async def get_tiktok_headers(self):
         tiktok_config = config["TokenManager"]["tiktok"]
-        cookie = os.environ.get("TIKTOK_COOKIE", tiktok_config["headers"].get("Cookie", ""))
+        cookie = get_tiktok_cookie(tiktok_config["headers"].get("Cookie", ""))
         kwargs = {
             "headers": {
                 "User-Agent": tiktok_config["headers"]["User-Agent"],

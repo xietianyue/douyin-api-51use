@@ -14,6 +14,9 @@ class BilibiliAPIEndpoints:
     # 作品视频流
     VIDEO_PLAYURL = f"{BILIAPI_DOMAIN}/x/player/wbi/playurl"
 
+    # 番剧/影视剧集信息（通过 ep_id 获取对应 BV 号）
+    BANGUMI_SEASON = f"{BILIAPI_DOMAIN}/pgc/view/web/season"
+
     # 用户发布视频作品数据
     USER_POST = f"{BILIAPI_DOMAIN}/x/space/wbi/arc/search"
 

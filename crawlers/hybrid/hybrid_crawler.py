@@ -37,6 +37,7 @@ import httpx
 
 from crawlers.douyin.web.web_crawler import DouyinWebCrawler  # 导入抖音Web爬虫
 from crawlers.tiktok.app.app_crawler import TikTokAPPCrawler  # 导入TikTok App爬虫
+from crawlers.tiktok.web.utils import AwemeIdFetcher  # 提取TikTok作品ID
 from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibili Web爬虫
 
 
@@ -48,7 +49,7 @@ class HybridCrawler:
 
     async def get_bilibili_bv_id(self, url: str) -> str:
         """
-        从 Bilibili URL 中提取 BV 号，支持短链重定向
+        从 Bilibili URL 中提取 BV 号，支持短链和番剧 ep 链接
         """
         # 如果是 b23.tv 短链，需要重定向获取真实URL
         if "b23.tv" in url:
@@ -61,8 +62,24 @@ class HybridCrawler:
         match = re.search(bv_pattern, url)
         if match:
             return match.group(1)
-        else:
-            raise ValueError(f"Cannot extract BV ID from URL: {url}")
+
+        # 番剧/影视链接没有直接携带 BV 号，需先通过 ep_id 查询分集信息。
+        ep_match = re.search(r'/bangumi/play/ep(\d+)', url)
+        if ep_match:
+            ep_id = ep_match.group(1)
+            response = await self.BilibiliWebCrawler.fetch_bangumi_season(ep_id)
+            result = response.get("result") or {}
+            episodes = result.get("episodes") or []
+            episode = next(
+                (item for item in episodes if str(item.get("id")) == ep_id),
+                None,
+            )
+            bv_id = (episode or {}).get("bvid")
+            if bv_id:
+                return bv_id
+            raise ValueError(f"Cannot resolve Bilibili episode ep{ep_id} to a BV ID")
+
+        raise ValueError(f"Cannot extract BV ID from URL: {url}")
 
     async def hybrid_parsing_single_video(self, url: str, minimal: bool = False):
         # 解析抖音视频/Parse Douyin video
@@ -76,7 +93,7 @@ class HybridCrawler:
         # 解析TikTok视频/Parse TikTok video
         elif "tiktok" in url:
             platform = "tiktok"
-            aweme_id = await self.TikTokWebCrawler.get_aweme_id(url)
+            aweme_id = await AwemeIdFetcher.get_aweme_id(url)
 
             # 2024-09-14: Switch to TikTokAPPCrawler instead of TikTokWebCrawler
             # data = await self.TikTokWebCrawler.fetch_one_video(aweme_id)
