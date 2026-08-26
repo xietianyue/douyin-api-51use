@@ -39,6 +39,7 @@ import yaml  # 配置文件
 
 # 基础爬虫客户端和哔哩哔哩API端点
 from crawlers.base_crawler import BaseCrawler
+from crawlers.cookie_config import get_cookie
 from crawlers.bilibili.web.endpoints import BilibiliAPIEndpoints
 # 哔哩哔哩工具类
 from crawlers.bilibili.web.utils import EndpointGenerator, bv2av, ResponseAnalyzer
@@ -58,7 +59,7 @@ class BilibiliWebCrawler:
     # 从配置文件读取哔哩哔哩请求头
     async def get_bilibili_headers(self):
         bili_config = config['TokenManager']['bilibili']
-        cookie = os.environ.get("BILIBILI_COOKIE", bili_config["headers"].get("cookie", ""))
+        cookie = await get_cookie("bilibili", "BILIBILI_COOKIE", bili_config["headers"].get("cookie", ""))
         kwargs = {
             "headers": {
                 "accept-language": bili_config["headers"]["accept-language"],

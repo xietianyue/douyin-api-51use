@@ -41,6 +41,7 @@ import yaml  # 配置文件
 
 # 基础爬虫客户端和抖音API端点
 from crawlers.base_crawler import BaseCrawler
+from crawlers.cookie_config import get_cookie
 from crawlers.douyin.web.endpoints import DouyinAPIEndpoints
 # 抖音接口数据请求模型
 from crawlers.douyin.web.models import (
@@ -72,7 +73,7 @@ class DouyinWebCrawler:
     # 从配置文件中获取抖音的请求头
     async def get_douyin_headers(self):
         douyin_config = config["TokenManager"]["douyin"]
-        cookie = os.environ.get("DOUYIN_COOKIE", douyin_config["headers"].get("Cookie", ""))
+        cookie = await get_cookie("douyin", "DOUYIN_COOKIE", douyin_config["headers"].get("Cookie", ""))
         kwargs = {
             "headers": {
                 "Accept-Language": douyin_config["headers"]["Accept-Language"],
