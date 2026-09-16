@@ -39,6 +39,7 @@ from crawlers.douyin.web.web_crawler import DouyinWebCrawler  # 导入抖音Web�
 from crawlers.tiktok.app.app_crawler import TikTokAPPCrawler  # 导入TikTok App爬虫
 from crawlers.tiktok.web.utils import AwemeIdFetcher  # 提取TikTok作品ID
 from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibili Web爬虫
+from crawlers.bilibili.media import extract_bilibili_media, require_bilibili_data
 
 
 class HybridCrawler:
@@ -107,7 +108,7 @@ class HybridCrawler:
             platform = "bilibili"
             aweme_id = await self.get_bilibili_bv_id(url)  # BV号作为统一的video_id
             response = await self.BilibiliWebCrawler.fetch_one_video(aweme_id)
-            data = response.get('data', {})  # 提取data部分
+            data = require_bilibili_data(response, "video detail")
             # Bilibili只有视频类型，aweme_type设为0(video)
             aweme_type = 0
         else:
@@ -281,14 +282,8 @@ class HybridCrawler:
                 if cid:
                     # 获取播放链接，cid需要转换为字符串
                     playurl_data = await self.BilibiliWebCrawler.fetch_video_playurl(aweme_id, str(cid))
-                    # 从播放数据中提取URL
-                    dash = playurl_data.get('data', {}).get('dash', {})
-                    video_list = dash.get('video', [])
-                    audio_list = dash.get('audio', [])
-                    
-                    # 选择最高质量的视频流
-                    video_url = video_list[0].get('baseUrl') if video_list else None
-                    audio_url = audio_list[0].get('baseUrl') if audio_list else None
+                    # durl 是自带音频的渐进式 MP4；没有 durl 时再使用 DASH 音视频流。
+                    video_url, audio_url = extract_bilibili_media(playurl_data)
                     
                     api_data = {
                         'video_data': {
@@ -301,15 +296,7 @@ class HybridCrawler:
                         }
                     }
                 else:
-                    api_data = {
-                        'video_data': {
-                            'wm_video_url': None,
-                            'wm_video_url_HQ': None,
-                            'nwm_video_url': None,
-                            'nwm_video_url_HQ': None,
-                            'error': 'Failed to get cid for video playback'
-                        }
-                    }
+                    raise ValueError("Bilibili video detail is missing cid")
         # 更新数据/Update data
         result_data.update(api_data)
         return result_data
