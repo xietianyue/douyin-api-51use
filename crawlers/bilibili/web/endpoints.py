@@ -11,6 +11,9 @@ class BilibiliAPIEndpoints:
     # 作品信息 (Post Detail)
     POST_DETAIL = f"{BILIAPI_DOMAIN}/x/web-interface/view"
 
+    # 当前登录账号及大会员状态
+    ACCOUNT_NAV = f"{BILIAPI_DOMAIN}/x/web-interface/nav"
+
     # 作品视频流
     VIDEO_PLAYURL = f"{BILIAPI_DOMAIN}/x/player/wbi/playurl"
 

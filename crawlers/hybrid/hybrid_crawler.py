@@ -40,6 +40,7 @@ from crawlers.tiktok.app.app_crawler import TikTokAPPCrawler  # 导入TikTok App
 from crawlers.tiktok.web.utils import AwemeIdFetcher  # 提取TikTok作品ID
 from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibili Web爬虫
 from crawlers.bilibili.media import (
+    BilibiliAccessError,
     extract_bilibili_media,
     require_bilibili_data,
     require_bilibili_full_playback,
@@ -300,7 +301,11 @@ class HybridCrawler:
                             aweme_id,
                             str(cid),
                         )
-                        require_bilibili_full_playback(playurl_data)
+                        try:
+                            require_bilibili_full_playback(playurl_data)
+                        except BilibiliAccessError:
+                            account_data = await self.BilibiliWebCrawler.fetch_account_status()
+                            require_bilibili_full_playback(playurl_data, account_data)
                     else:
                         # 普通投稿视频继续使用 WBI playurl 接口。
                         playurl_data = await self.BilibiliWebCrawler.fetch_video_playurl(

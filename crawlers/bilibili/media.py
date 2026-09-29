@@ -9,6 +9,18 @@ class BilibiliAccessError(ValueError):
     """The configured Bilibili session cannot access the full media."""
 
 
+class BilibiliCookieExpiredError(BilibiliAccessError):
+    """The configured Cookie does not represent a logged-in Bilibili session."""
+
+
+class BilibiliVipRequiredError(BilibiliAccessError):
+    """The logged-in account does not have an active Bilibili VIP membership."""
+
+
+class BilibiliPlaybackRestrictedError(BilibiliAccessError):
+    """The logged-in VIP account still cannot access the full media."""
+
+
 def require_bilibili_data(payload: Any, operation: str) -> dict:
     """Return a successful response's data/result object or raise a safe error."""
 
@@ -27,13 +39,27 @@ def require_bilibili_data(payload: Any, operation: str) -> dict:
     return data
 
 
-def require_bilibili_full_playback(payload: Any) -> dict:
-    """Reject PGC preview streams produced by a missing or unauthorized VIP session."""
+def require_bilibili_full_playback(payload: Any, account_payload: Any = None) -> dict:
+    """Classify a PGC preview using the Cookie's independent account status."""
 
     data = require_bilibili_data(payload, "bangumi play URL")
-    if data.get("is_preview") in (1, True) or data.get("error_code") == -10403:
-        raise BilibiliAccessError("该视频需要大会员权限")
-    return data
+    is_preview = data.get("is_preview") in (1, True) or data.get("error_code") == -10403
+    if not is_preview:
+        return data
+
+    if not isinstance(account_payload, dict):
+        raise BilibiliPlaybackRestrictedError("当前账号无该视频播放权限")
+
+    if account_payload.get("code") == -101:
+        raise BilibiliCookieExpiredError("B站 Cookie 已失效，请更新后重试")
+
+    account = require_bilibili_data(account_payload, "account status")
+    if account.get("isLogin") is not True:
+        raise BilibiliCookieExpiredError("B站 Cookie 已失效，请更新后重试")
+    if account.get("vipStatus") not in (1, True):
+        raise BilibiliVipRequiredError("该视频需要大会员权限")
+
+    raise BilibiliPlaybackRestrictedError("当前账号无该视频播放权限")
 
 
 def _first_media_url(item: Any) -> str | None:

@@ -88,6 +88,14 @@ class BilibiliWebCrawler:
             response = await crawler.fetch_get_json(endpoint)
         return response
 
+    # 获取当前 Cookie 对应的登录及大会员状态
+    async def fetch_account_status(self) -> dict:
+        kwargs = await self.get_bilibili_headers()
+        base_crawler = BaseCrawler(proxies=kwargs["proxies"], crawler_headers=kwargs["headers"])
+        async with base_crawler as crawler:
+            response = await crawler.fetch_get_json(BilibiliAPIEndpoints.ACCOUNT_NAV)
+        return response
+
     # 通过番剧 ep_id 获取季度及分集信息
     async def fetch_bangumi_season(self, ep_id: str) -> dict:
         kwargs = await self.get_bilibili_headers()

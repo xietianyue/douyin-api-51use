@@ -1,7 +1,9 @@
 import unittest
 
 from crawlers.bilibili.media import (
-    BilibiliAccessError,
+    BilibiliCookieExpiredError,
+    BilibiliPlaybackRestrictedError,
+    BilibiliVipRequiredError,
     extract_bilibili_media,
     require_bilibili_data,
     require_bilibili_full_playback,
@@ -57,7 +59,36 @@ class BilibiliMediaTests(unittest.TestCase):
         self.assertEqual(video_url, "https://media.example/bangumi.mp4")
         self.assertIsNone(audio_url)
 
-    def test_pgc_preview_is_rejected(self):
+    def preview_payload(self):
+        return {
+            "code": 0,
+            "result": {
+                "is_preview": 1,
+                "error_code": -10403,
+                "durl": [{"url": "https://media.example/preview.mp4"}],
+            },
+        }
+
+    def test_pgc_preview_with_expired_cookie_is_classified(self):
+        with self.assertRaisesRegex(BilibiliCookieExpiredError, "Cookie 已失效"):
+            require_bilibili_full_playback(
+                self.preview_payload(),
+                {"code": -101, "message": "账号未登录"},
+            )
+
+    def test_pgc_preview_for_logged_in_non_vip_account_is_classified(self):
+        account = {"code": 0, "data": {"isLogin": True, "vipStatus": 0}}
+
+        with self.assertRaisesRegex(BilibiliVipRequiredError, "需要大会员权限"):
+            require_bilibili_full_playback(self.preview_payload(), account)
+
+    def test_pgc_preview_for_active_vip_uses_restricted_prompt(self):
+        account = {"code": 0, "data": {"isLogin": True, "vipStatus": 1}}
+
+        with self.assertRaisesRegex(BilibiliPlaybackRestrictedError, "无该视频播放权限"):
+            require_bilibili_full_playback(self.preview_payload(), account)
+
+    def test_pgc_preview_without_account_probe_is_not_misclassified(self):
         payload = {
             "code": 0,
             "result": {
@@ -67,7 +98,7 @@ class BilibiliMediaTests(unittest.TestCase):
             },
         }
 
-        with self.assertRaisesRegex(BilibiliAccessError, "该视频需要大会员权限"):
+        with self.assertRaisesRegex(BilibiliPlaybackRestrictedError, "无该视频播放权限"):
             require_bilibili_full_playback(payload)
 
     def test_business_error_is_not_treated_as_empty_success(self):

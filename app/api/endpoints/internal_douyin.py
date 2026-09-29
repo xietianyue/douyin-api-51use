@@ -8,7 +8,11 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
-from crawlers.bilibili.media import BilibiliAccessError
+from crawlers.bilibili.media import (
+    BilibiliAccessError,
+    BilibiliCookieExpiredError,
+    BilibiliVipRequiredError,
+)
 from crawlers.hybrid.hybrid_crawler import HybridCrawler
 from crawlers.utils.utils import extract_valid_urls
 
@@ -60,10 +64,20 @@ async def parse_video(payload: ParseRequest, x_internal_token: str | None = Head
         return {"ok": True, "data": data}
     except HTTPException:
         raise
-    except BilibiliAccessError:
+    except BilibiliCookieExpiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "BILIBILI_COOKIE_EXPIRED", "message": str(exc)},
+        ) from None
+    except BilibiliVipRequiredError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="该视频需要大会员权限",
+            detail={"code": "BILIBILI_VIP_REQUIRED", "message": str(exc)},
+        ) from None
+    except BilibiliAccessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "BILIBILI_PLAYBACK_RESTRICTED", "message": str(exc)},
         ) from None
     except Exception as exc:
         # Do not log links, cookies, tokens, or upstream response bodies.
