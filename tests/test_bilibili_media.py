@@ -1,6 +1,11 @@
 import unittest
 
-from crawlers.bilibili.media import extract_bilibili_media, require_bilibili_data
+from crawlers.bilibili.media import (
+    BilibiliAccessError,
+    extract_bilibili_media,
+    require_bilibili_data,
+    require_bilibili_full_playback,
+)
 
 
 class BilibiliMediaTests(unittest.TestCase):
@@ -36,6 +41,34 @@ class BilibiliMediaTests(unittest.TestCase):
 
         self.assertEqual(video_url, "https://media.example/video.m4s")
         self.assertEqual(audio_url, "https://media.example/audio.m4s")
+
+    def test_pgc_result_envelope_is_supported(self):
+        payload = {
+            "code": 0,
+            "result": {
+                "is_preview": 0,
+                "durl": [{"url": "https://media.example/bangumi.mp4"}],
+            },
+        }
+
+        require_bilibili_full_playback(payload)
+        video_url, audio_url = extract_bilibili_media(payload)
+
+        self.assertEqual(video_url, "https://media.example/bangumi.mp4")
+        self.assertIsNone(audio_url)
+
+    def test_pgc_preview_is_rejected(self):
+        payload = {
+            "code": 0,
+            "result": {
+                "is_preview": 1,
+                "error_code": -10403,
+                "durl": [{"url": "https://media.example/preview.mp4"}],
+            },
+        }
+
+        with self.assertRaisesRegex(BilibiliAccessError, "VIP cookie"):
+            require_bilibili_full_playback(payload)
 
     def test_business_error_is_not_treated_as_empty_success(self):
         with self.assertRaisesRegex(ValueError, r"code=-412"):

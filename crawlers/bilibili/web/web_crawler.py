@@ -35,6 +35,7 @@
 import asyncio  # 异步I/O
 import os  # 系统操作
 import time  # 时间操作
+from urllib.parse import urlencode
 import yaml  # 配置文件
 
 # 基础爬虫客户端和哔哩哔哩API端点
@@ -93,6 +94,30 @@ class BilibiliWebCrawler:
         base_crawler = BaseCrawler(proxies=kwargs["proxies"], crawler_headers=kwargs["headers"])
         async with base_crawler as crawler:
             endpoint = f"{BilibiliAPIEndpoints.BANGUMI_SEASON}?ep_id={ep_id}"
+            response = await crawler.fetch_get_json(endpoint)
+        return response
+
+    # 获取番剧/影视剧集播放流地址
+    async def fetch_bangumi_playurl(
+        self,
+        ep_id: str,
+        bv_id: str,
+        cid: str,
+        qn: str = "64",
+    ) -> dict:
+        kwargs = await self.get_bilibili_headers()
+        base_crawler = BaseCrawler(proxies=kwargs["proxies"], crawler_headers=kwargs["headers"])
+        params = urlencode({
+            "ep_id": ep_id,
+            "bvid": bv_id,
+            "cid": cid,
+            "qn": qn,
+            "fnval": 0,
+            "fnver": 0,
+            "fourk": 0,
+        })
+        async with base_crawler as crawler:
+            endpoint = f"{BilibiliAPIEndpoints.BANGUMI_PLAYURL}?{params}"
             response = await crawler.fetch_get_json(endpoint)
         return response
 

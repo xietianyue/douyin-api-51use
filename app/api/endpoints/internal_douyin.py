@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
+from crawlers.bilibili.media import BilibiliAccessError
 from crawlers.hybrid.hybrid_crawler import HybridCrawler
 from crawlers.utils.utils import extract_valid_urls
 
@@ -59,6 +60,11 @@ async def parse_video(payload: ParseRequest, x_internal_token: str | None = Head
         return {"ok": True, "data": data}
     except HTTPException:
         raise
+    except BilibiliAccessError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="bilibili VIP cookie is expired or lacks playback entitlement",
+        ) from None
     except Exception as exc:
         # Do not log links, cookies, tokens, or upstream response bodies.
         logger.warning("Video parse failed: %s", type(exc).__name__)

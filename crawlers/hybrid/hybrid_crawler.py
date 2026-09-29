@@ -39,7 +39,11 @@ from crawlers.douyin.web.web_crawler import DouyinWebCrawler  # 导入抖音Web�
 from crawlers.tiktok.app.app_crawler import TikTokAPPCrawler  # 导入TikTok App爬虫
 from crawlers.tiktok.web.utils import AwemeIdFetcher  # 提取TikTok作品ID
 from crawlers.bilibili.web.web_crawler import BilibiliWebCrawler  # 导入Bilibili Web爬虫
-from crawlers.bilibili.media import extract_bilibili_media, require_bilibili_data
+from crawlers.bilibili.media import (
+    extract_bilibili_media,
+    require_bilibili_data,
+    require_bilibili_full_playback,
+)
 
 
 class HybridCrawler:
@@ -48,9 +52,9 @@ class HybridCrawler:
         self.TikTokAPPCrawler = TikTokAPPCrawler()
         self.BilibiliWebCrawler = BilibiliWebCrawler()
 
-    async def get_bilibili_bv_id(self, url: str) -> str:
+    async def get_bilibili_video_reference(self, url: str) -> tuple[str, str | None]:
         """
-        从 Bilibili URL 中提取 BV 号，支持短链和番剧 ep 链接
+        从 Bilibili URL 中提取 BV 号及可选 ep_id，支持短链和番剧链接
         """
         # 如果是 b23.tv 短链，需要重定向获取真实URL
         if "b23.tv" in url:
@@ -62,7 +66,7 @@ class HybridCrawler:
         bv_pattern = r'(?:video\/|\/)(BV[A-Za-z0-9]+)'
         match = re.search(bv_pattern, url)
         if match:
-            return match.group(1)
+            return match.group(1), None
 
         # 番剧/影视链接没有直接携带 BV 号，需先通过 ep_id 查询分集信息。
         ep_match = re.search(r'/bangumi/play/ep(\d+)', url)
@@ -72,17 +76,27 @@ class HybridCrawler:
             result = response.get("result") or {}
             episodes = result.get("episodes") or []
             episode = next(
-                (item for item in episodes if str(item.get("id")) == ep_id),
+                (
+                    item for item in episodes
+                    if str(item.get("id") or item.get("ep_id")) == ep_id
+                ),
                 None,
             )
             bv_id = (episode or {}).get("bvid")
             if bv_id:
-                return bv_id
+                return bv_id, ep_id
             raise ValueError(f"Cannot resolve Bilibili episode ep{ep_id} to a BV ID")
 
         raise ValueError(f"Cannot extract BV ID from URL: {url}")
 
+    async def get_bilibili_bv_id(self, url: str) -> str:
+        """Backward-compatible helper returning only the resolved BV ID."""
+
+        bv_id, _ = await self.get_bilibili_video_reference(url)
+        return bv_id
+
     async def hybrid_parsing_single_video(self, url: str, minimal: bool = False):
+        bilibili_ep_id = None
         # 解析抖音视频/Parse Douyin video
         if "douyin" in url:
             platform = "douyin"
@@ -106,7 +120,7 @@ class HybridCrawler:
         # 解析Bilibili视频/Parse Bilibili video
         elif "bilibili" in url or "b23.tv" in url:
             platform = "bilibili"
-            aweme_id = await self.get_bilibili_bv_id(url)  # BV号作为统一的video_id
+            aweme_id, bilibili_ep_id = await self.get_bilibili_video_reference(url)
             response = await self.BilibiliWebCrawler.fetch_one_video(aweme_id)
             data = require_bilibili_data(response, "video detail")
             # Bilibili只有视频类型，aweme_type设为0(video)
@@ -280,8 +294,19 @@ class HybridCrawler:
                 # 获取视频播放地址需要额外调用API
                 cid = data.get('cid')  # 获取cid
                 if cid:
-                    # 获取播放链接，cid需要转换为字符串
-                    playurl_data = await self.BilibiliWebCrawler.fetch_video_playurl(aweme_id, str(cid))
+                    if bilibili_ep_id:
+                        playurl_data = await self.BilibiliWebCrawler.fetch_bangumi_playurl(
+                            bilibili_ep_id,
+                            aweme_id,
+                            str(cid),
+                        )
+                        require_bilibili_full_playback(playurl_data)
+                    else:
+                        # 普通投稿视频继续使用 WBI playurl 接口。
+                        playurl_data = await self.BilibiliWebCrawler.fetch_video_playurl(
+                            aweme_id,
+                            str(cid),
+                        )
                     # durl 是自带音频的渐进式 MP4；没有 durl 时再使用 DASH 音视频流。
                     video_url, audio_url = extract_bilibili_media(playurl_data)
                     

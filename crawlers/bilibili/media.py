@@ -5,8 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 
+class BilibiliAccessError(ValueError):
+    """The configured Bilibili session cannot access the full media."""
+
+
 def require_bilibili_data(payload: Any, operation: str) -> dict:
-    """Return a successful response's data object or raise a safe error."""
+    """Return a successful response's data/result object or raise a safe error."""
 
     if not isinstance(payload, dict):
         raise ValueError(f"Bilibili {operation} returned an invalid response")
@@ -17,7 +21,20 @@ def require_bilibili_data(payload: Any, operation: str) -> dict:
 
     data = payload.get("data")
     if not isinstance(data, dict):
-        raise ValueError(f"Bilibili {operation} response is missing data")
+        data = payload.get("result")
+    if not isinstance(data, dict):
+        raise ValueError(f"Bilibili {operation} response is missing data/result")
+    return data
+
+
+def require_bilibili_full_playback(payload: Any) -> dict:
+    """Reject PGC preview streams produced by a missing or unauthorized VIP session."""
+
+    data = require_bilibili_data(payload, "bangumi play URL")
+    if data.get("is_preview") in (1, True) or data.get("error_code") == -10403:
+        raise BilibiliAccessError(
+            "Bilibili VIP cookie is expired or lacks playback entitlement"
+        )
     return data
 
 
