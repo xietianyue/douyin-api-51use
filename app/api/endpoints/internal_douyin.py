@@ -63,7 +63,7 @@ async def parse_video(payload: ParseRequest, x_internal_token: str | None = Head
     except BilibiliAccessError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="bilibili VIP cookie is expired or lacks playback entitlement",
+            detail="该视频需要大会员权限",
         ) from None
     except Exception as exc:
         # Do not log links, cookies, tokens, or upstream response bodies.

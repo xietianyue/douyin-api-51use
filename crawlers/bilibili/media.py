@@ -32,9 +32,7 @@ def require_bilibili_full_playback(payload: Any) -> dict:
 
     data = require_bilibili_data(payload, "bangumi play URL")
     if data.get("is_preview") in (1, True) or data.get("error_code") == -10403:
-        raise BilibiliAccessError(
-            "Bilibili VIP cookie is expired or lacks playback entitlement"
-        )
+        raise BilibiliAccessError("该视频需要大会员权限")
     return data
 
 

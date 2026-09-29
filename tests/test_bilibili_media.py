@@ -67,7 +67,7 @@ class BilibiliMediaTests(unittest.TestCase):
             },
         }
 
-        with self.assertRaisesRegex(BilibiliAccessError, "VIP cookie"):
+        with self.assertRaisesRegex(BilibiliAccessError, "该视频需要大会员权限"):
             require_bilibili_full_playback(payload)
 
     def test_business_error_is_not_treated_as_empty_success(self):
