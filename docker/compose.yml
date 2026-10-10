@@ -33,10 +33,9 @@ x-app-image: &app-image
 
 x-app-env: &app-env
   env_file:
-    # Missing on a fresh clone; the entrypoint then refuses to start with an
-    # actionable message instead of compose failing with a file-not-found.
-    - path: ../.env
-      required: false
+    # Compose 2.17.2 only supports the short env_file syntax. Create this file
+    # from ../.env.example before starting the stack.
+    - ../.env
 
 #: Resource ceilings for the two Python app services.
 #:
@@ -105,8 +104,7 @@ services:
     pids_limit: 256
     image: timescale/timescaledb-ha:pg17
     env_file:
-      - path: ../.env
-        required: false
+      - ../.env
     environment:
       # POSTGRES_PASSWORD comes from ../.env. The master key does not: the
       # database has no use for the key that encrypts its own contents, so it is
@@ -149,8 +147,7 @@ services:
     # Without this, redis would run as root.
     user: redis
     env_file:
-      - path: ../.env
-        required: false
+      - ../.env
     environment:
       DTK_SECRET_KEY: ""
     # $$ escapes compose interpolation, so REDIS_PASSWORD is expanded by the
@@ -366,8 +363,7 @@ services:
     # to be settable in one place. `environment:` wins over `env_file:`, so only
     # what the container's own topology fixes is repeated below.
     env_file:
-      - path: ../.env
-        required: false
+      - ../.env
     environment:
       # This container holds no credentials and never talks to the database, so
       # the master key that arrives with the shared env file is blanked here.
@@ -493,8 +489,7 @@ services:
       args:
         VERSION: ${DTK_IMAGE_TAG:-dev}
     env_file:
-      - path: ../.env
-        required: false
+      - ../.env
     environment:
       # This container holds no credentials and never touches the database.
       # Both are blanked even though the shared env file carries them: the
